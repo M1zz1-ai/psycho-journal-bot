@@ -1,0 +1,15 @@
+# systemd timer: fire the weekly report every Sunday at 01:00.
+# This is the fix for the "never-firing in-process weekly scheduler" — a real
+# cron-aligned trigger instead of a 7-day sleep from process start (see README).
+[Unit]
+Description=Run the psycho weekly report every Sunday
+
+[Timer]
+# Sunday 01:00 (server local time). Persistent=true catches a missed run
+# if the machine was off at the scheduled moment.
+OnCalendar=Sun *-*-* 01:00:00
+Persistent=true
+Unit=psycho-report.service
+
+[Install]
+WantedBy=timers.target

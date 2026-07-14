@@ -1,0 +1,15 @@
+# systemd oneshot: build and send ONE weekly report, then exit.
+# Fired by psycho-report.timer (Sunday). Install alongside the timer:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now psycho-report.timer
+#
+# Replace every CHANGE_ME below.
+[Unit]
+Description=Psycho journal bot — weekly report (oneshot)
+After=network-online.target redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=CHANGE_ME_USER
+WorkingDirectory=CHANGE_ME_ABSOLUTE_REPO_PATH
+ExecStart=CHANGE_ME_ABSOLUTE_REPO_PATH/.venv/bin/python -m psycho --once

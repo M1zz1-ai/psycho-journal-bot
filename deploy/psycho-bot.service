@@ -1,0 +1,21 @@
+# systemd unit: the long-poll router + journaling process.
+# Install to /etc/systemd/system/psycho-bot.service, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now psycho-bot
+#
+# Replace every CHANGE_ME below.
+[Unit]
+Description=Psycho journal bot (Telegram long-poll router)
+After=network-online.target redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=CHANGE_ME_USER
+WorkingDirectory=CHANGE_ME_ABSOLUTE_REPO_PATH
+# Secrets are read from the repo-root .env by the app; keep it chmod 600.
+ExecStart=CHANGE_ME_ABSOLUTE_REPO_PATH/.venv/bin/python -m psycho
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
