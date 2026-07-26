@@ -18,25 +18,10 @@ exercises grounded in Seneca, Epictetus, and Marcus Aurelius.
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    U([User in Telegram])
-    U -->|voice note| ROUTER[aiogram long-poll router]
-    U -->|text / button press| ROUTER
-
-    ROUTER -->|voice OGG/Opus| STT[OpenAI Whisper STT]
-    STT --> LEDGER[(Redis journal<br/>7-day TTL)]
-    ROUTER -->|text entry| LEDGER
-
-    U -->|"Получить анализ" + period| ANALYSIS[On-demand analysis]
-    LEDGER --> ANALYSIS
-    ANALYSIS -->|cheap/fast model, cold-stoic| U
-
-    TIMER[systemd timer<br/>Sunday 01:00] --> REPORT[Weekly report]
-    LEDGER --> REPORT
-    NOTION[Notion tasks<br/>optional] -. enrich .-> REPORT
-    REPORT -->|flagship model, cold-stoic| U
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
+  <img alt="Two independent systemd units — a long-polling bot and a oneshot weekly report fired by a calendar timer — sharing only the redis journal, which both the on-demand analysis and the weekly report read" src="docs/img/architecture-light.svg" width="100%">
+</picture>
 
 ## Features
 

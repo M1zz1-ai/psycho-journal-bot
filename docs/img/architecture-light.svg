@@ -1,0 +1,61 @@
+<svg viewBox="-16.0 -16.0 652.0 412.0" width="652.0" height="412.0" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two independent systemd units — a long-polling bot and a oneshot weekly report fired by a calendar timer — share only the redis journal; voice notes are transcribed and appended, and both the on-demand analysis and the weekly report read the same ledger"><rect x="-16.0" y="-16.0" width="652.0" height="412.0" fill="#F4F0E8"/>
+        <defs><symbol id="i-py" viewBox="0 0 24 24"><path fill="currentColor" d="M11.9 1.5c-2.6 0-4.4.8-4.4 3v2.3h4.5v.8H5.7c-2.2 0-4.1 1.3-4.1 4.5s1.7 4.6 3.9 4.6h1.6v-2.8c0-2.4 2.1-4.5 4.5-4.5h4.5c2 0 3.6-1.6 3.6-3.6V4.5c0-1.9-1.6-2.6-3.6-2.9-1.4-.1-2.8-.1-4.2-.1Zm-2.4 2c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9Z"/><path fill="currentColor" opacity=".55" d="M12.1 22.5c2.6 0 4.4-.8 4.4-3v-2.3H12v-.8h6.3c2.2 0 4.1-1.3 4.1-4.5s-1.7-4.6-3.9-4.6h-1.6v2.8c0 2.4-2.1 4.5-4.5 4.5H7.9c-2 0-3.6 1.6-3.6 3.6v1.3c0 1.9 1.6 2.6 3.6 2.9 1.4.1 2.8.1 4.2.1Zm2.4-2c-.5 0-.9-.4-.9-.9s.4-.9.9-.9.9.4.9.9-.4.9-.9.9Z"/></symbol><symbol id="i-tg" viewBox="0 0 24 24"><path fill="currentColor" d="M21.8 3.3 2.9 10.6c-1 .4-1 1.8 0 2.2l4.6 1.6 1.8 5.5c.3.9 1.4 1.1 2 .4l2.5-2.6 4.7 3.5c.7.5 1.7.1 1.9-.7l3.3-15.5c.2-1-.8-1.9-1.9-1.7ZM8.9 14.3l9.3-6.7-7.6 8.1-.3 3.2-1.4-4.6Z"/></symbol><marker id="ap" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill="#1A1420"/></marker></defs>
+        <g font-family="ui-monospace,monospace" font-size="9" fill="#1A1420">
+          <use color="#1A1420" href="#i-tg" x="0" y="4" width="12" height="12" opacity=".85"/>
+          <text x="18" y="14" opacity=".85">TELEGRAM</text>
+          <line x1="0" y1="20" x2="110" y2="20" stroke="#1A1420" stroke-width="1"/>
+          <text x="0" y="36" opacity=".5">a voice note, or "analyse last week"</text>
+
+          <text x="424" y="14" opacity=".85">SYSTEMD TIMER</text>
+          <line x1="424" y1="20" x2="560" y2="20" stroke="#1A1420" stroke-width="1"/>
+          <text x="424" y="36" opacity=".5">Sun 01:00 · Persistent=true</text>
+
+          <rect x="0" y="58" width="290" height="150" fill="none" stroke="#6B3FBF" stroke-width="1"/>
+          <use href="#i-py" x="10" y="64" width="12" height="12" color="#6B3FBF"/>
+          <text x="28" y="74" fill="#6B3FBF">unit 1 · long-poll bot</text>
+
+          <rect x="14" y="92" width="122" height="38" fill="#EAE4D8" stroke="#1A1420" stroke-width="1"/>
+          <text x="24" y="110">whisper</text>
+          <text x="24" y="123" opacity=".55">voice to text</text>
+
+          <rect x="152" y="92" width="124" height="38" fill="#EAE4D8" stroke="#1A1420" stroke-width="1"/>
+          <text x="162" y="110">on demand</text>
+          <text x="162" y="123" opacity=".55">a period, in words</text>
+
+          <rect x="152" y="152" width="124" height="38" fill="#EAE4D8" stroke="#1A1420" stroke-width="1"/>
+          <text x="162" y="170">the analyst</text>
+          <text x="162" y="183" opacity=".55">cold · cited</text>
+
+          <rect x="330" y="58" width="290" height="150" fill="none" stroke="#6B3FBF" stroke-width="1"/>
+          <use href="#i-py" x="340" y="64" width="12" height="12" color="#6B3FBF"/>
+          <text x="358" y="74" fill="#6B3FBF">unit 2 · oneshot report</text>
+
+          <rect x="344" y="92" width="262" height="38" fill="#EAE4D8" stroke="#1A1420" stroke-width="1"/>
+          <text x="354" y="110">runs, writes, exits</text>
+          <text x="354" y="123" opacity=".55">nothing sleeps between Sundays</text>
+
+          <rect x="344" y="152" width="262" height="38" fill="#EAE4D8" stroke="#1A1420" stroke-width="1"/>
+          <text x="354" y="170">the same analyst</text>
+          <text x="354" y="183" opacity=".55">a wider window, one report</text>
+
+          <rect x="150" y="256" width="320" height="42" fill="#EAE4D8" stroke="#6B3FBF" stroke-width="2"/>
+          <text x="162" y="274" fill="#6B3FBF">redis journal — entry per timestamp</text>
+          <text x="162" y="288" fill="#6B3FBF" opacity=".75">the only thing the two units share</text>
+
+          <text x="0" y="338" opacity=".6">A RESTART OF EITHER UNIT CANNOT MOVE THE OTHER'S SCHEDULE</text>
+          <text x="0" y="356" opacity=".45">which is the entire point, and used not to be true</text>
+        </g>
+        <g stroke="#1A1420" stroke-width="1.5" fill="none" marker-end="url(#ap)" opacity=".85">
+          <path d="M55 40 L55 92"/>
+          <path d="M214 40 L214 92"/>
+          <path d="M214 130 L214 152"/>
+          <path d="M475 40 L475 92"/>
+          <path d="M475 130 L475 152"/>
+          <path d="M75 130 L75 236 L186 236 L186 250"/>
+        </g>
+        <g stroke="#1A1420" stroke-width="1.5" fill="none" marker-end="url(#ap)" opacity=".5">
+          <path d="M300 256 L300 226 L240 226 L240 196"/>
+          <path d="M420 256 L420 226 L475 226 L475 196"/>
+        </g>
+      </svg>

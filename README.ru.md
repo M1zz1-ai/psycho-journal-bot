@@ -18,25 +18,10 @@ Redis и — по запросу или по расписанию — отдаё
 
 ## Архитектура
 
-```mermaid
-flowchart TD
-    U([Пользователь в Telegram])
-    U -->|голосовое| ROUTER[aiogram long-poll роутер]
-    U -->|текст / кнопка| ROUTER
-
-    ROUTER -->|голос OGG/Opus| STT[OpenAI Whisper STT]
-    STT --> LEDGER[(Журнал в Redis<br/>TTL 7 дней)]
-    ROUTER -->|текстовая запись| LEDGER
-
-    U -->|"Получить анализ" + период| ANALYSIS[Разбор по запросу]
-    LEDGER --> ANALYSIS
-    ANALYSIS -->|дешёвая/быстрая модель| U
-
-    TIMER[systemd-таймер<br/>воскресенье 01:00] --> REPORT[Еженедельный отчёт]
-    LEDGER --> REPORT
-    NOTION[Задачи Notion<br/>опционально] -. обогащение .-> REPORT
-    REPORT -->|флагманская модель| U
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
+  <img alt="Два независимых systemd-юнита — long-poll бот и одноразовый недельный отчёт по календарному таймеру — разделяют только redis-журнал, который читают и разбор по запросу, и отчёт" src="docs/img/architecture-light.svg" width="100%">
+</picture>
 
 ## Возможности
 
