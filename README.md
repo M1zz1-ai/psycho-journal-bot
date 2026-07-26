@@ -14,6 +14,8 @@ exercises grounded in Seneca, Epictetus, and Marcus Aurelius.
 
 > 🇷🇺 Русская версия: **[README.ru.md](README.ru.md)** (the bot's own UX is Russian).
 
+📊 The same story as a full-screen deck: **[a sleep is not a schedule](https://m1zz1-ai.github.io/psycho-journal-bot/)** — eight screens on the bug that made "every Sunday" a lie, and what replaced it.
+
 ## Architecture
 
 ```mermaid
@@ -104,6 +106,12 @@ was off still fires on boot). The in-process path is still available behind
 `PSYCHO_INPROC_REPORT=1` for hosts without systemd. See `deploy/` and
 `psycho/report.py`.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/sleep-is-not-a-schedule-dark.svg">
+  <img alt="The same three restarts drawn against both clocks: an in-process seven-day sleep restarting from zero each time so the fire time drifts later, and a systemd calendar timer firing every Sunday regardless" src="docs/img/sleep-is-not-a-schedule-light.svg" width="100%">
+</picture>
+
+
 **Swapping the LLM provider in one seam.** The bot originally ran on Anthropic.
 When that had to change, the swap touched exactly one module: the tools and bot
 logic depend only on a tiny agent interface (`.run()`, `.structured_output()`,
@@ -111,6 +119,12 @@ logic depend only on a tiny agent interface (`.run()`, `.structured_output()`,
 changing which client the factory constructs — not rewriting the pipeline. The
 lesson baked into the layout: **depend on a narrow capability interface, not on a
 vendor SDK.**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/one-seam-provider-swap-dark.svg">
+  <img alt="Router, analysis and the weekly report all depend on a three-method interface — run, structured_output and tool — with a single adapter module below it holding the vendor SDK" src="docs/img/one-seam-provider-swap-light.svg" width="100%">
+</picture>
+
 
 **Reasoning-model gotchas.** The current models are reasoning models, which means
 (1) requests use `max_completion_tokens`, not `max_tokens`; (2) reasoning tokens

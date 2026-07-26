@@ -14,6 +14,8 @@ Redis и — по запросу или по расписанию — отдаё
 
 > 🇬🇧 English version: **[README.md](README.md)**.
 
+📊 Та же история полноэкранной витриной: **[sleep — это не расписание](https://m1zz1-ai.github.io/psycho-journal-bot/)** — восемь экранов о баге, из-за которого «каждое воскресенье» было неправдой.
+
 ## Архитектура
 
 ```mermaid
@@ -102,12 +104,24 @@ uv run python -m psycho --once
 `OnCalendar=Sun *-*-* 01:00` и `Persistent=true`. Внутрипроцессный путь остался за
 флагом `PSYCHO_INPROC_REPORT=1`.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/sleep-is-not-a-schedule-dark.svg">
+  <img alt="Одни и те же три рестарта на двух шкалах: внутрипроцессный семидневный sleep каждый раз начинается заново и момент срабатывания уползает, а календарный таймер systemd срабатывает в воскресенье независимо от рестартов" src="docs/img/sleep-is-not-a-schedule-light.svg" width="100%">
+</picture>
+
+
 **Смена LLM-провайдера в одном шве.** Изначально бот работал на Anthropic. Когда
 это пришлось менять, правка затронула ровно один модуль: логика зависит только от
 узкого интерфейса агента (`.run()`, `.structured_output()`, `.tool()`), поэтому
 переход на OpenAI — это один `core/openai_agent.py` и смена конструируемого
 клиента, а не переписывание пайплайна. Урок в архитектуре: **зависеть от узкого
 интерфейса возможностей, а не от SDK вендора.**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/one-seam-provider-swap-dark.svg">
+  <img alt="Роутер, анализ и еженедельный отчёт зависят от интерфейса из трёх методов — run, structured_output и tool, — а знание о конкретном SDK живёт в одном модуле-адаптере под ним" src="docs/img/one-seam-provider-swap-light.svg" width="100%">
+</picture>
+
 
 ## Тесты
 

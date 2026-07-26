@@ -1,0 +1,305 @@
+<title>psycho-journal-bot — a sleep is not a schedule</title>
+<style>
+  :root{
+    --ground:#0E0A14; --raised:#171122; --rule:#2E2440; --ghost:#3A2E52;
+    --ink:#EDE6DA; --dim:#9B93A8;
+    --violet:#B57BFF; --ok:#6FD3A0; --warn:#E9A93C; --fail:#FF6B5E;
+    --halo:rgba(181,123,255,.55);
+    --serif: ui-serif,"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --logo:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAA4CAYAAABNGP5yAAACnUlEQVR4nO2Zv2uTQRjHv/dwiEgIIiWUDh1LkQwZpEMHh4yliH+AQwcRB3EQKQ6OUqSDQxERcXAQZ5HSsYhDh+IQJIh0dAiSSYI4iFhJyl2eNs/7Xu79kYhPPhDeey93z/OG+z7PPe8F+Ie4WJ0/7n8m6ZOgHIJyDL+5c317IL+nbzdP9ZeJ8zkJv9LvIyjHhlaFU9QKJdmX4Enxe++bKdo+QTkE5ZgsEmp3Wr79/vCNiZ3/tXvk2+8OXpo8IRgjd2k+QTkE5dgsk+oLjeHNCo7PhgOXOGextoQ0CfPQSpPttdWbhZXLBOWY0ICYJFMGXBVVe2EsVcXULgTlEJRjYwZLyS0kwbzwhCv5l/qk2iIJgnIIyjExg6X9t+wQkEiqM2Kk7yAoh/Af0VdobJVIUA5BOZYfOd1o3hspH0OSer3/ZKTP2Tlbyp56icqA5OtqfX3s+bNDUQGCciw/aW13WtFvfrcvLY70PWdS5eGw/2VvcG0ur40dIm5Okq/PwjPxsOW1gVQ/EJRjpM6YvfRy55Nvr8/Nn1yPDsWxTg181bu9jm87ZfBkx1fd2edsn6ulPl+oOiQoh6Acm9eAJEsOl7BLjo3lpu+rVRd820l/d2llaJ+FU8hXFgjKISjHhAbE7Aibv7qp3z+kSuLpbp/e75+D66M/P1LthDI/Z7YLlJ0EP7R3fbtyZSN17DDdyZzoA3gW8vnxVaaXIQmCcgjKsXkNtA7aI32N1bpvrwXCIsQek7vztYX7vu/urQe57BOUQ1COiRkcqgl2XjzGJAjJfvbXWAQGGZiWEopceQdBOQTl2LKlWjk/59tbO8P9W4LXD0WVuiEIyiEoxxRpLLQ7uPd9TtLZQNHZPgmCckzZDvKqosjVliAoh6b9ANPmLwdU5PQTDxqcAAAAAElFTkSuQmCC");
+    --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Cascadia Mono","DejaVu Sans Mono",monospace;
+  }
+  @media (prefers-color-scheme:light){
+    :root{--ground:#F4F0E8;--raised:#EAE4D8;--rule:#CFC6B6;--ghost:#D3CABB;
+      --ink:#1A1420;--dim:#6A6070;--violet:#6B3FBF;--ok:#1E7A52;--warn:#9A6410;--fail:#C2382C;--halo:rgba(107,63,191,.30);}
+  }
+  :root[data-theme="dark"]{--ground:#0E0A14;--raised:#171122;--rule:#2E2440;--ghost:#3A2E52;
+    --ink:#EDE6DA;--dim:#9B93A8;--violet:#B57BFF;--ok:#6FD3A0;--warn:#E9A93C;--fail:#FF6B5E;--halo:rgba(181,123,255,.55);}
+  :root[data-theme="light"]{--ground:#F4F0E8;--raised:#EAE4D8;--rule:#CFC6B6;--ghost:#D3CABB;
+    --ink:#1A1420;--dim:#6A6070;--violet:#6B3FBF;--ok:#1E7A52;--warn:#9A6410;--fail:#C2382C;--halo:rgba(107,63,191,.30);}
+
+  body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+    font-size:1.0625rem;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  section{border-bottom:1px solid var(--rule);padding:104px 24px;
+    display:grid;grid-template-columns:88px minmax(0,62ch);gap:24px;
+    justify-content:center;align-content:start;}
+  .rail{font-family:var(--mono);font-size:.8125rem;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--dim);line-height:1.5;}
+  .rail b{display:block;color:var(--violet);font-weight:400;}
+  .col{display:flex;flex-direction:column;gap:24px;min-width:0;}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(2rem,6vw,3.4rem);
+    letter-spacing:-.015em;line-height:1.12;margin:0;text-wrap:balance;}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(1.6rem,4.4vw,2.4rem);
+    letter-spacing:-.015em;line-height:1.15;margin:0;text-wrap:balance;}
+  p{margin:0;max-width:62ch;}
+  .dim{color:var(--dim);}
+  .lede{font-size:1.1875rem;}
+  figure{margin:0;overflow-x:auto;}
+  svg{display:block;max-width:100%;height:auto;}
+  figcaption{font-family:var(--mono);font-size:.75rem;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--dim);margin-top:12px;}
+  .msg{border:1px solid var(--rule);background:var(--raised);padding:16px;
+    font-family:var(--mono);font-size:.8125rem;line-height:1.7;}
+  .msg .hd{color:var(--fail);text-transform:uppercase;letter-spacing:.08em;}
+  .msg .ok{color:var(--ok);}
+  .refuse{display:flex;flex-direction:column;gap:16px;}
+  .refuse div{border-left:2px solid var(--violet);padding-left:16px;}
+  .refuse b{font-weight:600;}
+  .refuse p{color:var(--dim);margin-top:4px;}
+  .stack{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);}
+  .stack div{background:var(--raised);padding:12px 16px;
+    display:flex;justify-content:space-between;gap:16px;align-items:baseline;}
+  .stack span:last-child{font-family:var(--mono);font-size:.8125rem;color:var(--dim);
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .note{font-family:var(--mono);font-size:.8125rem;color:var(--dim);
+    border:1px dashed var(--rule);padding:16px;}
+  a{color:var(--violet);}
+  .mono{font-family:var(--mono);font-size:.9em;}
+
+  /* Source art is 64x56. Every displayed size is an integer ratio of that
+     (32 = 1:2, 128 = 2:1) so pixelated rendering lands on whole pixels
+     instead of smearing the sprite. */
+  .mark{position:relative;display:block;width:32px;height:28px;flex:none;}
+  .mark::before{content:"";position:absolute;inset:-85%;border-radius:50%;opacity:.5;
+    background:radial-gradient(circle,var(--halo) 0%,transparent 70%);}
+  .mark::after{content:"";position:absolute;inset:0;
+    background:var(--logo) center/contain no-repeat;image-rendering:pixelated;}
+  .mark.big{width:128px;height:112px;}
+  .rail .mark{margin-bottom:14px;}
+    image-rendering:pixelated;opacity:.75;z-index:9;}
+  .ico{width:1em;height:1em;vertical-align:-.12em;margin-right:.45em;opacity:.8;}
+  @media (prefers-reduced-motion:no-preference){
+    section{animation:rise .32s ease-out both;}
+    @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    .mark::before{animation:breathe 4.5s ease-in-out infinite;}
+    @keyframes breathe{0%,100%{opacity:.26;transform:scale(.88)}
+      50%{opacity:.72;transform:scale(1.12)}}
+  }
+  @media (max-width:640px){
+    section{grid-template-columns:minmax(0,1fr);padding:64px 20px;gap:16px;}
+    .rail{display:flex;gap:12px;align-items:center;}
+    .rail b{display:inline;}
+    .rail .mark{margin-bottom:0;}
+  }
+</style>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-tg" viewBox="0 0 24 24"><path fill="currentColor" d="M21.8 3.3 2.9 10.6c-1 .4-1 1.8 0 2.2l4.6 1.6 1.8 5.5c.3.9 1.4 1.1 2 .4l2.5-2.6 4.7 3.5c.7.5 1.7.1 1.9-.7l3.3-15.5c.2-1-.8-1.9-1.9-1.7ZM8.9 14.3l9.3-6.7-7.6 8.1-.3 3.2-1.4-4.6Z"/></symbol>
+<symbol id="i-nt" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" d="M3.6 4.4 15 3.2c.9-.1 1.4.1 1.9.6l3 2.6c.4.4.6.7.6 1.3v12c0 .8-.4 1.3-1.3 1.4L6.4 21.9c-.8.1-1.3-.1-1.8-.7l-2-2.6c-.4-.6-.6-1-.6-1.6V5.7c0-.7.3-1.2 1.6-1.3Z"/><path fill="currentColor" d="M8.2 8.3v7.2l1.5-.1V11l3.2 4.3 1.5-.1V8l-1.5.1v4.2L9.8 8.2l-1.6.1Z"/></symbol>
+<symbol id="i-py" viewBox="0 0 24 24"><path fill="currentColor" d="M11.9 1.5c-2.6 0-4.4.8-4.4 3v2.3h4.5v.8H5.7c-2.2 0-4.1 1.3-4.1 4.5s1.7 4.6 3.9 4.6h1.6v-2.8c0-2.4 2.1-4.5 4.5-4.5h4.5c2 0 3.6-1.6 3.6-3.6V4.5c0-1.9-1.6-2.6-3.6-2.9-1.4-.1-2.8-.1-4.2-.1Zm-2.4 2c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9Z"/><path fill="currentColor" opacity=".55" d="M12.1 22.5c2.6 0 4.4-.8 4.4-3v-2.3H12v-.8h6.3c2.2 0 4.1-1.3 4.1-4.5s-1.7-4.6-3.9-4.6h-1.6v2.8c0 2.4-2.1 4.5-4.5 4.5H7.9c-2 0-3.6 1.6-3.6 3.6v1.3c0 1.9 1.6 2.6 3.6 2.9 1.4.1 2.8.1 4.2.1Zm2.4-2c-.5 0-.9-.4-.9-.9s.4-.9.9-.9.9.4.9.9-.4.9-.9.9Z"/></symbol>
+<symbol id="i-cl" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3.2v17.6M3.2 12h17.6M5.8 5.8l12.4 12.4M18.2 5.8 5.8 18.2"/></g></symbol>
+</defs></svg>
+
+<section>
+  <div class="rail"><b>00</b>psycho-journal-bot</div>
+  <div class="col">
+    <span class="mark big"></span>
+    <h1>"Every Sunday" really meant "about a week after the last restart."</h1>
+    <p class="lede">The weekly report ran from an in-process timer that slept
+    seven days from start-up. Every deploy, crash and reboot silently reset it.
+    Nothing errored. The report simply arrived on a schedule nobody had chosen,
+    and drifted a little further every time the box came back up.</p>
+    <p class="dim">psycho-journal-bot is a Telegram voice journal with a
+    deliberately cold analyst attached: speak, it transcribes and stores, and on
+    request it reads a window of what you actually said and tells you what it
+    sees — without the encouragement.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>01</b>the drift</div>
+  <div class="col">
+    <h2>A sleep is not a schedule</h2>
+    <p class="dim">The bug is not that the timer was wrong. It is that a timer
+    measured from process start answers a different question than a calendar
+    does, and the two agree right up until the first restart.</p>
+    <figure>
+      <svg viewBox="0 0 620 200" role="img" aria-label="Top: an in-process seven-day sleep restarting from zero at every deploy so the fire time drifts later and later. Bottom: a systemd calendar timer firing on the same weekday regardless of restarts">
+        <g font-family="ui-monospace,monospace" font-size="9" fill="currentColor">
+          <text x="0" y="12" opacity=".6">IN-PROCESS SLEEP &mdash; RESETS ON EVERY RESTART</text>
+        </g>
+        <line x1="0" y1="40" x2="620" y2="40" stroke="var(--rule)" stroke-width="1"/>
+        <g stroke="var(--fail)" stroke-width="1" fill="none" opacity=".85">
+          <path d="M0 34 L0 46"/><path d="M150 34 L150 46"/><path d="M330 34 L330 46"/>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="8" fill="var(--fail)" opacity=".9">
+          <text x="4" y="58">restart</text><text x="154" y="58">restart</text><text x="334" y="58">restart</text>
+        </g>
+        <g stroke="currentColor" stroke-width="6" opacity=".35">
+          <path d="M0 26 L110 26"/><path d="M150 26 L260 26"/><path d="M330 26 L440 26"/>
+        </g>
+        <g stroke="currentColor" stroke-width="1" fill="none" opacity=".8">
+          <path d="M440 20 L440 32"/>
+        </g>
+        <text x="446" y="24" font-family="ui-monospace,monospace" font-size="9"
+          fill="currentColor">fires here &mdash; whenever that is</text>
+
+        <g font-family="ui-monospace,monospace" font-size="9" fill="currentColor">
+          <text x="0" y="106" opacity=".6">SYSTEMD CALENDAR TIMER &mdash; RESTARTS ARE IRRELEVANT</text>
+        </g>
+        <line x1="0" y1="134" x2="620" y2="134" stroke="var(--rule)" stroke-width="1"/>
+        <g stroke="var(--violet)" stroke-width="2" fill="none">
+          <path d="M60 124 L60 144"/><path d="M230 124 L230 144"/><path d="M400 124 L400 144"/>
+          <path d="M570 124 L570 144"/>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="8" fill="var(--violet)">
+          <text x="46" y="158">SUN</text><text x="216" y="158">SUN</text>
+          <text x="386" y="158">SUN</text><text x="556" y="158">SUN</text>
+        </g>
+        <g stroke="var(--fail)" stroke-width="1" fill="none" opacity=".5">
+          <path d="M150 128 L150 140"/><path d="M330 128 L330 140"/>
+        </g>
+        <text x="0" y="184" font-family="ui-monospace,monospace" font-size="9"
+          fill="currentColor" opacity=".7">Persistent=true &mdash; a run missed while the box was off fires on boot</text>
+      </svg>
+      <figcaption>the same three restarts, drawn against both clocks</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>02</b>the stance</div>
+  <div class="col">
+    <h2>What it is forbidden to say</h2>
+    <p class="dim">Most of the prompt is a list of things the analyst may not do.
+    That is the product decision, not a safety afterthought: an assistant that
+    agrees with you is worse than no assistant, because you will believe it.</p>
+    <div class="msg">
+      <div class="hd">forbidden</div>
+      <div>generic praise</div>
+      <div>advice the entries do not support</div>
+      <div>emotional support for its own sake</div>
+      <div class="ok">— required —</div>
+      <div>a real citation, located: "Epictetus, Enchiridion §1"</div>
+      <div>never a platitude wearing a philosopher's name</div>
+    </div>
+    <p class="dim">It is an analyst, not a coach and not a therapist. It does not
+    diagnose, and it says what the entries show even when that is unflattering —
+    which is the only reason reading it back is worth anything.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>03</b>the ledger</div>
+  <div class="col">
+    <h2>Voice in, because nobody types a journal</h2>
+    <p class="dim">A voice note is transcribed by Whisper and appended to a redis
+    ledger keyed by timestamp. That ledger is the product; the model is a reader
+    of it, and a late one. Nothing is analysed at write time.</p>
+    <div class="stack">
+      <div><span>Input</span><span>voice note or text</span></div>
+      <div><span>Transcription</span><span>Whisper</span></div>
+      <div><span>Storage</span><span>redis, one entry per timestamp</span></div>
+      <div><span>Analysed</span><span>only when you ask</span></div>
+      <div><span>Analysis window</span><span>a period you name in words</span></div>
+    </div>
+    <p class="dim">Asking for "last week" parses to a window, the window selects
+    entries, and only those entries become context. The bot has no memory of the
+    conversation — it has a record of what you said, which is a different and
+    more honest thing.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>04</b>the seam</div>
+  <div class="col">
+    <h2>The provider swap that touched one file</h2>
+    <p class="dim">It ran on Anthropic. It had to stop. The migration changed
+    which client a factory constructs — and nothing else — because the bot never
+    depended on a vendor SDK, only on three methods.</p>
+    <figure>
+      <svg viewBox="0 0 620 200" role="img" aria-label="Bot logic and tools depend on a three-method interface — run, structured_output, tool — and only one adapter module below it knows which vendor SDK is in use">
+        <g font-family="ui-monospace,monospace" font-size="9" fill="currentColor">
+          <g stroke="currentColor" stroke-width="1" fill="var(--raised)">
+            <rect x="0" y="16" width="190" height="30"/><rect x="215" y="16" width="190" height="30"/>
+            <rect x="430" y="16" width="190" height="30"/>
+          </g>
+          <text x="10" y="36">router</text><text x="225" y="36">analysis + tools</text>
+          <text x="440" y="36">weekly report</text>
+
+          <rect x="0" y="80" width="620" height="34" fill="var(--raised)"
+            stroke="var(--violet)" stroke-width="2"/>
+          <text x="12" y="101" fill="var(--violet)">.run()   .structured_output()   .tool()</text>
+          <text x="430" y="101" fill="var(--violet)" opacity=".75">the whole contract</text>
+
+          <rect x="0" y="140" width="298" height="30" fill="var(--raised)"
+            stroke="currentColor" stroke-width="1"/>
+          <text x="10" y="160">core/openai_agent.py</text>
+          <rect x="322" y="140" width="298" height="30" fill="none"
+            stroke="var(--ghost)" stroke-width="1" stroke-dasharray="3 4"/>
+          <text x="332" y="160" opacity=".5">the Anthropic one, retired</text>
+          <text x="0" y="192" opacity=".6">ONE MODULE KNOWS WHICH VENDOR &mdash; EVERYTHING ABOVE NEVER FINDS OUT</text>
+        </g>
+        <g stroke="currentColor" stroke-width="1" fill="none" opacity=".45">
+          <path d="M95 46 L95 80"/><path d="M310 46 L310 80"/><path d="M525 46 L525 80"/>
+          <path d="M150 114 L150 140"/>
+        </g>
+      </svg>
+      <figcaption>depend on a capability, not on whoever sells it this year</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>05</b>the gotcha</div>
+  <div class="col">
+    <h2>An empty answer with no error</h2>
+    <p class="dim">Reasoning models spend tokens thinking, and that thinking is
+    drawn from the same budget as the reply. Set the cap the way you always did
+    and the model reasons right up to the limit, then has nothing left to say —
+    so a request that cost real money returns an empty string and a success code.</p>
+    <div class="stack">
+      <div><span>Token cap</span><span>max_completion_tokens</span></div>
+      <div><span>Reasoning tokens</span><span>drawn from that same cap</span></div>
+      <div><span>Cap set too tight</span><span>empty reply, no error</span></div>
+      <div><span>temperature</span><span>never sent</span></div>
+    </div>
+    <p class="dim">All three are documented in the adapter, on the lines where
+    they bite. A note in a wiki nobody opens would not have saved the afternoon
+    that found them.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>06</b>staying up</div>
+  <div class="col">
+    <h2>Two units, and neither can take the other down</h2>
+    <p class="dim">The long-poll bot and the weekly report are separate systemd
+    units. The report is a oneshot fired by a timer, so it cannot leak into the
+    bot's process, and the bot restarting cannot reschedule it.</p>
+    <div class="stack">
+      <div><span>Bot</span><span>long-poll service</span></div>
+      <div><span>Report</span><span>oneshot + calendar timer</span></div>
+      <div><span>Missed while off</span><span>fires on boot</span></div>
+      <div><span>No systemd host</span><span>in-process fallback, opt-in</span></div>
+    </div>
+    <p class="dim">The in-process scheduler still exists behind an environment
+    flag. It was not deleted because on a host without systemd it is the honest
+    option — it just stopped being the default that quietly lied.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><span class="mark"></span><b>07</b>build</div>
+  <div class="col">
+    <h2>152 tests, nothing reaches the network</h2>
+    <p class="dim">OpenAI, Telegram and redis are faked at the boundary, so the
+    suite runs on a fresh clone with no accounts — including the period parser
+    and the report path, which are the parts that broke in production.</p>
+    <div class="stack">
+      <div><span><svg class="ico"><use href="#i-py"/></svg>Python 3.14 &middot; aiogram &middot; systemd</span><span>2,495 lines</span></div>
+      <div><span><svg class="ico"><use href="#i-tg"/></svg>Telegram &middot; voice notes &middot; Whisper</span><span>&mdash;</span></div>
+      <div><span>Agent contract</span><span>3 methods</span></div>
+      <div><span>Suite</span><span>152 tests</span></div>
+      <div><span>Network calls under test</span><span>0</span></div>
+    </div>
+    <p class="note">Scope, honestly: this one runs for anybody. It stores your
+    entries in your redis and sends them to your OpenAI key — a Telegram token
+    and that key are the whole list. The analyst's tone is somebody else's taste,
+    and it lives in one prompt you are meant to rewrite.</p>
+  </div>
+</section>
+
+</body></html>

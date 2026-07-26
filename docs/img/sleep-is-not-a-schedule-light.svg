@@ -1,0 +1,38 @@
+<svg viewBox="-16.0 -16.0 652.0 232.0" width="652.0" height="232.0" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Top: an in-process seven-day sleep restarting from zero at every deploy so the fire time drifts later and later. Bottom: a systemd calendar timer firing on the same weekday regardless of restarts"><rect x="-16.0" y="-16.0" width="652.0" height="232.0" fill="#F4F0E8"/>
+        <g font-family="ui-monospace,monospace" font-size="9" fill="#1A1420">
+          <text x="0" y="12" opacity=".6">IN-PROCESS SLEEP &mdash; RESETS ON EVERY RESTART</text>
+        </g>
+        <line x1="0" y1="40" x2="620" y2="40" stroke="#CFC6B6" stroke-width="1"/>
+        <g stroke="#C2382C" stroke-width="1" fill="none" opacity=".85">
+          <path d="M0 34 L0 46"/><path d="M150 34 L150 46"/><path d="M330 34 L330 46"/>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="8" fill="#C2382C" opacity=".9">
+          <text x="4" y="58">restart</text><text x="154" y="58">restart</text><text x="334" y="58">restart</text>
+        </g>
+        <g stroke="#1A1420" stroke-width="6" opacity=".35">
+          <path d="M0 26 L110 26"/><path d="M150 26 L260 26"/><path d="M330 26 L440 26"/>
+        </g>
+        <g stroke="#1A1420" stroke-width="1" fill="none" opacity=".8">
+          <path d="M440 20 L440 32"/>
+        </g>
+        <text x="446" y="24" font-family="ui-monospace,monospace" font-size="9"
+          fill="#1A1420">fires here &mdash; whenever that is</text>
+
+        <g font-family="ui-monospace,monospace" font-size="9" fill="#1A1420">
+          <text x="0" y="106" opacity=".6">SYSTEMD CALENDAR TIMER &mdash; RESTARTS ARE IRRELEVANT</text>
+        </g>
+        <line x1="0" y1="134" x2="620" y2="134" stroke="#CFC6B6" stroke-width="1"/>
+        <g stroke="#6B3FBF" stroke-width="2" fill="none">
+          <path d="M60 124 L60 144"/><path d="M230 124 L230 144"/><path d="M400 124 L400 144"/>
+          <path d="M570 124 L570 144"/>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="8" fill="#6B3FBF">
+          <text x="46" y="158">SUN</text><text x="216" y="158">SUN</text>
+          <text x="386" y="158">SUN</text><text x="556" y="158">SUN</text>
+        </g>
+        <g stroke="#C2382C" stroke-width="1" fill="none" opacity=".5">
+          <path d="M150 128 L150 140"/><path d="M330 128 L330 140"/>
+        </g>
+        <text x="0" y="184" font-family="ui-monospace,monospace" font-size="9"
+          fill="#1A1420" opacity=".7">Persistent=true &mdash; a run missed while the box was off fires on boot</text>
+      </svg>
