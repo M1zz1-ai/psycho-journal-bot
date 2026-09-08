@@ -20,7 +20,7 @@ exercises grounded in Seneca, Epictetus, and Marcus Aurelius.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
-  <img alt="Two independent systemd units — a long-polling bot and a oneshot weekly report fired by a calendar timer — sharing only the redis journal, which both the on-demand analysis and the weekly report read" src="docs/img/architecture-light.svg" width="100%">
+  <img alt="Two independent systemd units, a long-polling bot and a oneshot weekly report fired by a calendar timer, sharing only the redis journal that both the on-demand analysis and the weekly report read. Every Telegram update first passes a chat allowlist at the edge of the bot: an update from an unlisted chat is dropped in silence, without a reply, and the timer path never goes through that gate." src="docs/img/architecture-light.svg" width="100%">
 </picture>
 
 ## Features
