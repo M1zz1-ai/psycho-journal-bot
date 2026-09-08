@@ -3,7 +3,7 @@ redis raises (the degrade-don't-crash contract)."""
 
 import redis
 
-from core.state import RedisState
+from core.state import RedisState, bound_flat_list
 
 
 class FakeRedis:
@@ -11,9 +11,27 @@ class FakeRedis:
 
     def __init__(self):
         self.store = {}
+        self.lists = {}
+        self.expiries = {}  # key -> last ttl seconds passed to expire()
 
     def ping(self):
         return True
+
+    def rpush(self, key, *values):
+        self.lists.setdefault(key, []).extend(values)
+
+    def lrange(self, key, start, stop):
+        items = self.lists.get(key, [])
+        end = None if stop == -1 else stop + 1
+        return items[start:end]
+
+    def ltrim(self, key, start, stop):
+        items = self.lists.get(key, [])
+        end = None if stop == -1 else stop + 1
+        self.lists[key] = items[start:end]
+
+    def expire(self, key, ttl):
+        self.expiries[key] = ttl
 
     def exists(self, key):
         return 1 if key in self.store else 0
@@ -44,6 +62,15 @@ class DownRedis:
         raise redis.ConnectionError("down")
 
     def delete(self, key):
+        raise redis.ConnectionError("down")
+
+    def lrange(self, key, start, stop):
+        raise redis.ConnectionError("down")
+
+    def ltrim(self, key, start, stop):
+        raise redis.ConnectionError("down")
+
+    def expire(self, key, ttl):
         raise redis.ConnectionError("down")
 
 
@@ -82,8 +109,8 @@ def test_namespacing_isolates_bots():
 
 def test_session_roundtrip_json():
     s = _state(FakeRedis())
-    s.set_session("u1", {"step": 2, "name": "the user"})
-    assert s.get_session("u1") == {"step": 2, "name": "the user"}
+    s.set_session("u1", {"step": 2, "name": "Bogdan"})
+    assert s.get_session("u1") == {"step": 2, "name": "Bogdan"}
 
 
 def test_session_default_on_miss():
@@ -96,6 +123,61 @@ def test_clear_session():
     s.set_session("u1", 1)
     s.clear_session("u1")
     assert s.get_session("u1") is None
+
+
+# ---- list tail (an external producer's brief) ---------------------------
+
+
+def test_last_json_returns_the_newest_element():
+    fake = FakeRedis()
+    fake.rpush("test:notion:brief", '{"date": "2026-07-25"}', '{"date": "2026-07-26"}')
+    assert _state(fake).last_json("notion", "brief") == {"date": "2026-07-26"}
+
+
+def test_last_json_none_on_empty_list():
+    assert _state(FakeRedis()).last_json("notion", "brief") is None
+
+
+def test_last_json_none_on_garbage():
+    fake = FakeRedis()
+    fake.rpush("test:notion:brief", "not json")
+    assert _state(fake).last_json("notion", "brief") is None
+
+
+def test_last_json_none_when_down():
+    assert _state(DownRedis()).last_json("notion", "brief") is None
+
+
+def test_trim_list_keeps_only_the_newest():
+    """Nothing pops the brief list, so without LTRIM it grows one blob per day."""
+    fake = FakeRedis()
+    fake.rpush("test:notion:brief", *[f'{{"n": {i}}}' for i in range(10)])
+    s = _state(fake)
+    s.trim_list("notion", "brief", keep=3)
+    assert fake.lists["test:notion:brief"] == ['{"n": 7}', '{"n": 8}', '{"n": 9}']
+    assert s.last_json("notion", "brief") == {"n": 9}
+
+
+def test_trim_list_no_op_when_down():
+    _state(DownRedis()).trim_list("notion", "brief", keep=3)  # must not raise
+
+
+# ---- flat (un-namespaced) producer lists -------------------------------
+
+
+def test_bound_flat_list_trims_and_expires_the_literal_key():
+    """approval:psycho / approval:project are literal keys the drainer LPOPs;
+    bound_flat_list must operate on that exact string, with no namespace
+    prefix, unlike RedisState.trim_list which always prepends one."""
+    fake = FakeRedis()
+    fake.rpush("approval:psycho", *[f"card-{i}" for i in range(5)])
+    bound_flat_list(fake, "approval:psycho", keep=3, ttl=604800)
+    assert fake.lists["approval:psycho"] == ["card-2", "card-3", "card-4"]
+    assert fake.expiries["approval:psycho"] == 604800
+
+
+def test_bound_flat_list_no_op_when_down():
+    bound_flat_list(DownRedis(), "approval:psycho", keep=3, ttl=604800)  # must not raise
 
 
 # ---- graceful fallback -------------------------------------------------

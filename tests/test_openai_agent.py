@@ -276,3 +276,36 @@ def test_tool_loop_iteration_cap_raises():
 
     with pytest.raises(AgentError):
         agent.run("loop", max_iterations=3)
+
+
+def test_note_assistant_puts_a_message_into_the_conversation():
+    """A message the bot sent OUTSIDE the agent loop still has to be in its memory.
+
+    The notion bot's pinger asks "выходной?" on its own schedule; without this,
+    Bogdan's "да" lands in a conversation where nothing was ever asked.
+    """
+    client = FakeClient([_Response("ok")])
+    agent = OpenAIAgent(client, keep_history=True)
+    agent.note_assistant("Выходной?")
+    agent.run("да")
+    messages = client.chat.completions.calls[0]["messages"]
+    assert {"role": "assistant", "content": "Выходной?"} in messages
+    assert messages[-1] == {"role": "user", "content": "да"}
+
+
+def test_note_assistant_is_a_noop_without_history():
+    """A stateless agent has no conversation to add to — and must not grow one."""
+    client = FakeClient([_Response("ok")])
+    agent = OpenAIAgent(client)
+    agent.note_assistant("Выходной?")
+    agent.run("да")
+    messages = client.chat.completions.calls[0]["messages"]
+    assert all(m.get("content") != "Выходной?" for m in messages)
+
+
+def test_note_assistant_ignores_empty_text():
+    client = FakeClient([_Response("ok")])
+    agent = OpenAIAgent(client, keep_history=True)
+    agent.note_assistant("   ")
+    agent.run("да")
+    assert client.chat.completions.calls[0]["messages"] == [{"role": "user", "content": "да"}]

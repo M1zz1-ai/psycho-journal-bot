@@ -7,9 +7,9 @@ Anthropic loop's semantics: schema inferred from each callable's signature, a
 max-iterations cap, tool results fed back as ``role: tool`` messages, and tool
 exceptions surfaced to the model as an ``Error: ...`` string rather than crashing.
 
-Why this exists: the user decided not to top up the exhausted direct Anthropic API
-key, so the focus bots' brains moved to OpenAI (``OPENAI_API_KEY``
-already powers Whisper STT in ``core.stt``). ``core.agent`` (Anthropic) is left
+Why this exists: the direct Anthropic API key ran out of credit and was not
+renewed, so the focus bots' brains moved to OpenAI (``OPENAI_API_KEY`` already
+powers Whisper STT in ``core.stt``). ``core.agent`` (Anthropic) is left
 untouched for any non-focus consumer.
 
 Model note: the GPT-5 family are reasoning models. Consequences baked in here:
@@ -140,6 +140,22 @@ class OpenAIAgent:
     def reset(self) -> None:
         """Clear the conversation buffer (start a fresh session)."""
         self._history.clear()
+
+    def note_assistant(self, text: str) -> None:
+        """Record something the BOT said outside this loop, as if the model said it.
+
+        A bot is not only its agent: pingers, digests and schedulers speak in the
+        same chat on their own timers. When one of them asks a question, the next
+        user message answers it — and an agent that never saw the question has to
+        guess what "да" refers to.
+
+        A no-op without ``keep_history``: a stateless agent has no conversation to
+        add to, and growing a hidden one would quietly change its cost and its
+        behaviour. Blank text is ignored for the same reason.
+        """
+        if not self.keep_history or not text.strip():
+            return
+        self._history.append({"role": "assistant", "content": text})
 
     # ---- request assembly ----------------------------------------------
 

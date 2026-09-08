@@ -18,7 +18,7 @@ from aiogram import Dispatcher
 
 from core import config
 from psycho import router
-from psycho.bot import PsychoBot
+from psycho.bot import HEARTBEAT_KEY, PsychoBot
 
 # ---- build_psycho_bot ---------------------------------------------------
 
@@ -29,17 +29,21 @@ def _write_env(tmp_path: Path, **keys: str) -> Path:
     return env
 
 
-def test_build_psycho_bot_wires_core(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def _load_test_cfg(tmp_path: Path) -> config.Config:
     env = _write_env(
         tmp_path,
         TELEGRAM_BOT_TOKEN_PSYCHO="123:abc",
-        OPENAI_API_KEY="test-key",
+        OPENAI_API_KEY="sk-test",
         TELEGRAM_CHAT_ID="42",
     )
-    cfg = config.load(
+    return config.load(
         ["TELEGRAM_BOT_TOKEN_PSYCHO", "OPENAI_API_KEY", "TELEGRAM_CHAT_ID"],
         env_path=env,
     )
+
+
+def test_build_psycho_bot_wires_core(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = _load_test_cfg(tmp_path)
     # Don't construct a real openai client.
     monkeypatch.setattr(router.openai, "OpenAI", lambda **kw: object())
 
@@ -50,7 +54,120 @@ def test_build_psycho_bot_wires_core(tmp_path: Path, monkeypatch: pytest.MonkeyP
     # the session store exposes the enumeration the report needs
     assert hasattr(bot._state, "list_sessions")
     assert telegram is not None
-    # Delivery: report + analysis go straight to the owner's Telegram chat.
+
+
+def test_build_psycho_bot_leaves_card_sink_unset_by_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No consumer drains ``approval:psycho`` today (drainer retired 2026-07-24).
+
+    Regression for the 2026-07-24 to 2026-09-08 outage: wiring this sink
+    unconditionally meant every analysis/report was written to a list nobody
+    reads and never sent to Telegram. Default must be off.
+    """
+    cfg = _load_test_cfg(tmp_path)
+    monkeypatch.setattr(router.openai, "OpenAI", lambda **kw: object())
+    monkeypatch.delenv(router.PSYCHO_EMIT_CARDS_ENV, raising=False)
+
+    bot, _telegram = router.build_psycho_bot(cfg)
+    assert bot._card_sink is None
+
+
+def test_build_psycho_bot_wires_card_sink_when_flag_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With the flag on, ``_make_card_sink`` runs and needs ``card`` importable —
+    an internal-only module, not part of the public showcase export (see
+    ``showcase/export-psycho-bot.sh``): skip rather than fail where it is absent.
+    """
+    pytest.importorskip("psycho.card")
+    cfg = _load_test_cfg(tmp_path)
+    monkeypatch.setattr(router.openai, "OpenAI", lambda **kw: object())
+    monkeypatch.setenv(router.PSYCHO_EMIT_CARDS_ENV, "1")
+
+    bot, _telegram = router.build_psycho_bot(cfg)
+    assert callable(bot._card_sink)
+
+
+def test_build_psycho_bot_flag_0_also_leaves_sink_unset(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cfg = _load_test_cfg(tmp_path)
+    monkeypatch.setattr(router.openai, "OpenAI", lambda **kw: object())
+    monkeypatch.setenv(router.PSYCHO_EMIT_CARDS_ENV, "0")
+
+    bot, _telegram = router.build_psycho_bot(cfg)
+    assert bot._card_sink is None
+
+
+# ---- read_report_heartbeat -----------------------------------------------
+
+
+def _fake_redis_state_factory(*, to_return: str | None, captured: dict[str, object]):
+    """Build a ``state.RedisState`` stand-in so the heartbeat read never
+    touches a real redis connection; records the constructor args it saw."""
+
+    class _Fake:
+        def __init__(self, url: str, *, namespace: str) -> None:
+            captured["url"] = url
+            captured["namespace"] = namespace
+
+        def get_session(self, key: str, default: object | None = None) -> object | None:
+            assert key == HEARTBEAT_KEY
+            return to_return if to_return is not None else default
+
+    return _Fake
+
+
+def test_read_report_heartbeat_returns_stored_value(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cfg = _load_test_cfg(tmp_path)
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        router.state,
+        "RedisState",
+        _fake_redis_state_factory(to_return="2026-09-08T00:00:00+00:00", captured=captured),
+    )
+
+    result = router.read_report_heartbeat(cfg)
+    assert result == "2026-09-08T00:00:00+00:00"
+    assert captured["namespace"] == router.REDIS_NAMESPACE
+
+
+def test_read_report_heartbeat_none_when_never_delivered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cfg = _load_test_cfg(tmp_path)
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        router.state, "RedisState", _fake_redis_state_factory(to_return=None, captured=captured)
+    )
+
+    assert router.read_report_heartbeat(cfg) is None
+
+
+def test_card_sink_emits_valid_action_request(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The wired sink builds an action_request card and pushes it to redis.
+
+    ``card`` is an internal-only module, not part of the public showcase
+    export (see ``showcase/export-psycho-bot.sh``): skip rather than fail
+    where it is absent.
+    """
+    psycho_card = pytest.importorskip("psycho.card")
+
+    pushed: list[tuple[object, dict]] = []
+    monkeypatch.setattr(
+        psycho_card, "push_card", lambda st, item: pushed.append((st, item)) or True
+    )
+    sentinel_state = object()
+    sink = router._make_card_sink(sentinel_state)  # type: ignore[arg-type]
+    sink("Разбор.", period_label="неделя", source_session="2026-05-01-1200")
+    assert len(pushed) == 1
+    st, item = pushed[0]
+    assert st is sentinel_state
+    assert item["type"] == "action_request"
+    assert item["details"]["source_session"] == "2026-05-01-1200"
 
 
 def test_agent_factory_builds_agent_with_system_prompt(
@@ -74,7 +191,7 @@ def test_agent_factory_builds_agent_with_system_prompt(
 
 
 def test_build_dispatcher_registers_three_handlers() -> None:
-    dp = router.build_dispatcher(_FakeBot())  # type: ignore[arg-type]
+    dp = router.build_dispatcher(_FakeBot(), allowed_chat_ids=[7])  # type: ignore[arg-type]
     assert isinstance(dp, Dispatcher)
     # /start command + voice/audio + plain text = three message handlers
     assert len(dp.message.handlers) == 3
@@ -175,7 +292,7 @@ def _is_plain_lambda(fn: object) -> bool:
 @pytest.mark.asyncio
 async def test_text_handler_normalizes_to_on_text() -> None:
     fake = _FakeBot()
-    dp = router.build_dispatcher(fake)  # type: ignore[arg-type]
+    dp = router.build_dispatcher(fake, allowed_chat_ids=[7])  # type: ignore[arg-type]
     cb = _callback_for(dp, kind="text")
     await cb(_StubMessage(chat_id=7, text="сегодня тяжело"))
     assert fake.text_calls == [(7, "сегодня тяжело")]
@@ -184,7 +301,7 @@ async def test_text_handler_normalizes_to_on_text() -> None:
 @pytest.mark.asyncio
 async def test_voice_handler_logs_captioned_note() -> None:
     fake = _FakeBot()
-    dp = router.build_dispatcher(fake)  # type: ignore[arg-type]
+    dp = router.build_dispatcher(fake, allowed_chat_ids=[7])  # type: ignore[arg-type]
     cb = _callback_for(dp, kind="voice")
     await cb(_StubMessage(chat_id=7, voice=_StubVoice(duration=9), caption="наговорил мысль"))
     assert fake.voice_calls == [(7, "наговорил мысль", 9)]
@@ -206,7 +323,7 @@ async def test_voice_handler_transcribes_uncaptioned_note(
 
     monkeypatch.setattr(router.stt, "transcribe", _fake_transcribe)
 
-    dp = router.build_dispatcher(fake)  # type: ignore[arg-type]
+    dp = router.build_dispatcher(fake, allowed_chat_ids=[7])  # type: ignore[arg-type]
     cb = _callback_for(dp, kind="voice")
     await cb(_StubMessage(chat_id=7, voice=_StubVoice(duration=9), bot=stub_bot))
 
@@ -230,7 +347,7 @@ async def test_voice_handler_survives_stt_failure(
 
     monkeypatch.setattr(router.stt, "transcribe", _boom)
 
-    dp = router.build_dispatcher(fake)  # type: ignore[arg-type]
+    dp = router.build_dispatcher(fake, allowed_chat_ids=[7])  # type: ignore[arg-type]
     cb = _callback_for(dp, kind="voice")
     # must not raise
     await cb(_StubMessage(chat_id=7, voice=_StubVoice(duration=9), bot=stub_bot))

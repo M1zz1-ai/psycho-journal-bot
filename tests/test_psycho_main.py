@@ -53,31 +53,51 @@ def test_check_fails_loud_on_missing_keys(
     assert any(k in err for k in psycho_main.REQUIRED_KEYS)
 
 
-def test_check_passes_when_keys_present(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+def _patch_check_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, heartbeat: str | None = None
 ) -> None:
     env = _write_env(
         tmp_path,
         TELEGRAM_BOT_TOKEN_PSYCHO="123:abc",
         TELEGRAM_CHAT_ID="42",
-        OPENAI_API_KEY="test-openai-key",
+        OPENAI_API_KEY="sk-openai-test",
     )
     _patch_env(monkeypatch, env)
     monkeypatch.setattr(psycho_main.sys, "argv", ["psycho", "--check"])
+    # --check must never touch a real redis connection.
+    monkeypatch.setattr(psycho_main, "read_report_heartbeat", lambda cfg: heartbeat)
+
+
+def test_check_passes_when_keys_present(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _patch_check_env(tmp_path, monkeypatch)
 
     rc = psycho_main.main()
     assert rc == 0
     assert "Config OK" in capsys.readouterr().out
 
 
-def test_inproc_report_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("PSYCHO_INPROC_REPORT", raising=False)
-    assert psycho_main._inproc_report_enabled() is False
+def test_check_prints_last_report_heartbeat_when_present(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _patch_check_env(tmp_path, monkeypatch, heartbeat="2026-09-08T00:00:00+00:00")
+
+    rc = psycho_main.main()
+    assert rc == 0
+    assert "2026-09-08T00:00:00+00:00" in capsys.readouterr().out
 
 
-def test_inproc_report_enabled_via_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("PSYCHO_INPROC_REPORT", "1")
-    assert psycho_main._inproc_report_enabled() is True
+def test_check_reports_no_heartbeat_when_never_delivered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _patch_check_env(tmp_path, monkeypatch, heartbeat=None)
+
+    rc = psycho_main.main()
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Last report delivered" in out
+    assert "none seen" in out
 
 
 def test_required_keys_match_spec() -> None:

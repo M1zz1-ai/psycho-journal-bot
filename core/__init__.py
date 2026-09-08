@@ -1,10 +1,12 @@
-"""Shared, bot-agnostic building blocks for the psycho journal bot.
+"""m1zz1-bots shared core.
 
-Reusable pieces the bot is assembled from: Telegram I/O (``tg``), an OpenAI
-chat/tool agent (``openai_agent``), Whisper speech-to-text (``stt``), redis state
-(``state``), optional Notion task lookup (``notion``), configuration loading
-(``config``), a resilient interval scheduler (``scheduler``), and shared error
-types (``errors``).
+Generic, bot-agnostic building blocks for Bogdan's Python+n8n hybrid bots:
+Telegram I/O, an Anthropic tool-calling agent, redis state, fal.ai media,
+Notion tasks, spreadsheets, and a resilient interval scheduler.
+
+Each bot is a thin module on this core, and each bot capability is exposed as
+an agent-compatible callable (see ``core.agent``) so all bots' tools can later
+be registered into one unified agent.
 """
 
 __version__ = "0.1.0"

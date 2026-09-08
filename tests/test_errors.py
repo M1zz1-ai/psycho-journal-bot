@@ -40,6 +40,43 @@ async def test_run_resilient_swallows_and_alerts():
     assert "boom" in alerter.messages[0]
 
 
+async def test_alert_text_with_markup_survives_telegram_html_mode():
+    """The 05:30:07 loss on 2026-08-14: a traceback line killed the whole alert.
+
+    ``TelegramClient`` sends with ``parse_mode="HTML"``. A notion-cli httpx
+    traceback carries ``<module>``, Telegram answered ``Unsupported start tag
+    "module"`` and dropped the message — so the failure it was announcing
+    surfaced nowhere at all. The exception text must arrive as literal text.
+    """
+    alerter = FakeAlerter()
+
+    async def work():
+        raise RuntimeError(
+            'File "/root/.local/bin/notion-cli", line 8, in <module> & then '
+            "httpx.ConnectError: [Errno 8] nodename nor servname provided"
+        )
+
+    await run_resilient(work, alerter=alerter, label="notion call")
+    sent = alerter.messages[0]
+    assert "&lt;module&gt;" in sent
+    assert "&amp; then" in sent
+    assert "<module>" not in sent
+
+
+async def test_alert_markdown_is_left_alone_not_interpreted():
+    """Escape, do NOT convert: ``__main__`` is a path, not a request for bold."""
+    alerter = FakeAlerter()
+
+    async def work():
+        raise RuntimeError("__main__.py raised *hard*")
+
+    await run_resilient(work, alerter=alerter, label="boot")
+    sent = alerter.messages[0]
+    assert "__main__.py" in sent
+    assert "*hard*" in sent
+    assert "<b>" not in sent and "<i>" not in sent
+
+
 async def test_run_resilient_reraises_cancellation():
     async def work():
         raise asyncio.CancelledError

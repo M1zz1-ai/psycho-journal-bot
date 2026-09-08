@@ -1,8 +1,8 @@
 """Unit tests for psycho.tools — routing, session records, period parsing,
-analysis/report capabilities. the LLM client is faked; no network.
+analysis/report capabilities. Anthropic is faked; no network.
 
-Mirrors the n8n trio (Bot Router , OnDemand Analysis
-, Report Workflow ): the routing rules, the
+Mirrors the n8n trio (Bot Router N8N0000000000001, OnDemand Analysis
+N8N0000000000002, Report Workflow N8N0000000000003): the routing rules, the
 psycho:session ledger shape, the period parser, and the structured report.
 """
 
@@ -100,7 +100,7 @@ def test_parse_period_structured_happy_path():
 
 
 def test_parse_period_accepts_iso_dates():
-    # the model sometimes returns ISO; normalize to DD.MM.YYYY.
+    # Claude sometimes returns ISO; normalize to DD.MM.YYYY.
     agent = _FakeAgent(structured={"date_from": "2026-05-01", "date_to": "2026-05-07", "label": "x"})
     out = tools.parse_period(agent, "x")
     assert out["date_from"] == "01.05.2026"
@@ -174,7 +174,7 @@ def test_schemas_are_bare_not_double_wrapped():
     # core.agent.Agent.structured_output wraps the schema into
     # output_config={"format": {"type": "json_schema", "schema": schema}} itself.
     # If these schemas pre-wrap with their own "json_schema"/"schema" envelope,
-    # the payload is double-wrapped and a strict JSON-schema API rejects it with HTTP 400
+    # the payload is double-wrapped and the Anthropic API rejects it with HTTP 400
     # (silently swallowed by the fallback). They must be bare object schemas.
     for schema in (tools.PERIOD_SCHEMA, tools.REPORT_SCHEMA):
         assert schema["type"] == "object"

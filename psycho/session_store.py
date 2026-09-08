@@ -58,7 +58,7 @@ class PsychoSessionStore:
         redis can't be scanned (degraded, never raises).
         """
         client = getattr(self._state, "_client", None)
-        namespace = getattr(self._state, "namespace", "app")
+        namespace = getattr(self._state, "namespace", "m1zz1")
         if client is None:
             return []
         match = f"{namespace}:session:{prefix}*"

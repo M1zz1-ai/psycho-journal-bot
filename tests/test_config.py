@@ -1,4 +1,4 @@
-"""Config loading: requested-only keys, defaults, fail-loud on missing."""
+"""Config loading: per-bot required keys, defaults, fail-loud on missing."""
 
 import pytest
 
@@ -6,9 +6,10 @@ from core.config import Config, load
 from core.errors import ConfigError
 
 ENV = """\
-TELEGRAM_BOT_TOKEN_PSYCHO=tok
-TELEGRAM_CHAT_ID=111222333
-OPENAI_API_KEY=test-openai-key
+TELEGRAM_BOT_TOKEN=tok
+TELEGRAM_CHAT_ID=100000001
+ANTHROPIC_API_KEY=sk-test
+FAL_KEY=fal-xyz
 """
 
 
@@ -19,25 +20,25 @@ def _write(tmp_path, content=ENV):
 
 
 def test_load_only_requested_keys(tmp_path):
-    cfg = load(["TELEGRAM_BOT_TOKEN_PSYCHO", "OPENAI_API_KEY"], env_path=_write(tmp_path))
+    cfg = load(["TELEGRAM_BOT_TOKEN", "FAL_KEY"], env_path=_write(tmp_path))
     assert isinstance(cfg, Config)
-    assert cfg.require("TELEGRAM_BOT_TOKEN_PSYCHO") == "tok"
-    assert cfg.require("OPENAI_API_KEY") == "test-openai-key"
-    # A key that was not requested is simply absent.
-    assert cfg.get("TELEGRAM_CHAT_ID") is None
+    assert cfg.require("TELEGRAM_BOT_TOKEN") == "tok"
+    assert cfg.require("FAL_KEY") == "fal-xyz"
+    # A key the bot did not request is simply absent.
+    assert cfg.get("ANTHROPIC_API_KEY") is None
 
 
 def test_missing_key_raises_named_error(tmp_path):
     with pytest.raises(ConfigError) as exc:
-        load(["TELEGRAM_BOT_TOKEN_PSYCHO", "MISSING_TOKEN"], env_path=_write(tmp_path))
-    assert "MISSING_TOKEN" in str(exc.value)
+        load(["TELEGRAM_BOT_TOKEN", "GITHUB_TOKEN"], env_path=_write(tmp_path))
+    assert "GITHUB_TOKEN" in str(exc.value)
 
 
 def test_empty_value_treated_as_missing(tmp_path):
-    env = ENV.replace("OPENAI_API_KEY=test-openai-key", "OPENAI_API_KEY=")
+    env = ENV.replace("FAL_KEY=fal-xyz", "FAL_KEY=")
     with pytest.raises(ConfigError) as exc:
-        load(["OPENAI_API_KEY"], env_path=_write(tmp_path, env))
-    assert "OPENAI_API_KEY" in str(exc.value)
+        load(["FAL_KEY"], env_path=_write(tmp_path, env))
+    assert "FAL_KEY" in str(exc.value)
 
 
 def test_redis_url_default_when_absent(tmp_path):
@@ -52,15 +53,15 @@ def test_redis_url_override_from_env(tmp_path):
 
 
 def test_attribute_access(tmp_path):
-    cfg = load(["OPENAI_API_KEY"], env_path=_write(tmp_path))
-    assert cfg.openai_api_key == "test-openai-key"
+    cfg = load(["FAL_KEY"], env_path=_write(tmp_path))
+    assert cfg.fal_key == "fal-xyz"
     with pytest.raises(AttributeError):
         _ = cfg.nonexistent_key
 
 
-def test_requested_keys_are_independent(tmp_path):
+def test_per_bot_keys_are_independent(tmp_path):
     p = _write(tmp_path)
-    a = load(["TELEGRAM_BOT_TOKEN_PSYCHO"], env_path=p)
-    b = load(["OPENAI_API_KEY"], env_path=p)
-    assert a.get("OPENAI_API_KEY") is None
-    assert b.get("TELEGRAM_BOT_TOKEN_PSYCHO") is None
+    image_cfg = load(["TELEGRAM_BOT_TOKEN", "FAL_KEY"], env_path=p)
+    chat_cfg = load(["ANTHROPIC_API_KEY"], env_path=p)
+    assert image_cfg.get("ANTHROPIC_API_KEY") is None
+    assert chat_cfg.get("FAL_KEY") is None

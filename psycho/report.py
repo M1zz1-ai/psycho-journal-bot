@@ -7,9 +7,9 @@ schedule constant and the ``core.scheduler``-driven loop entry point so
 ``__main__`` can optionally run the report in-process.
 
 In production the report is instead fired by a Sunday-aligned systemd timer
-(``python -m psycho --once``) — see ``deploy/`` — because the in-process
-scheduler cannot align to a specific weekday (see the design note in the README).
-The report is built + sent from the redis ledger only; there is no external store.
+(``python -m psycho --once``) because the in-process scheduler cannot
+align to a specific weekday. The report is built + sent from the redis
+ledger only.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # pass (structure + therapist) warrants a stronger tier than the on-demand mini
 # path. ``gpt-5.5`` (snapshot 2026-04-23) is verified against the live /v1/models
 # list. Override via ``PSYCHO_REPORT_MODEL``. (Brain moved from Anthropic to
-# OpenAI when the direct Anthropic key ran out of credits.)
+# OpenAI when the direct Anthropic key ran out of credit.)
 REPORT_MODEL = os.getenv("PSYCHO_REPORT_MODEL", "gpt-5.5")
 
 # Weekly cadence. The n8n cron was "0 1 * * 0" (Sunday 01:00). The in-process

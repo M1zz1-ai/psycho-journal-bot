@@ -76,11 +76,11 @@ async def test_language_omitted_when_none():
 
 async def test_path_input_read_from_disk(tmp_path: Path):
     audio_file = tmp_path / "clip.ogg"
-    audio_file.write_bytes(b"raw-audio-bytes")
+    audio_file.write_bytes(b"disk-audio")
     rec = {}
     await transcribe(audio_file, client=_FakeClient(rec))
     file_arg = rec["kwargs"]["file"]
-    assert file_arg[1] == b"raw-audio-bytes"
+    assert file_arg[1] == b"disk-audio"
     assert file_arg[0] == "clip.ogg"  # filename defaults to the path's name
 
 

@@ -7,15 +7,21 @@ and the weekly Report Workflow (in-process scheduler, the crypto-news pattern).
 Run modes:
   python -m psycho           # run: long-poll router + weekly report scheduler
   python -m psycho --once    # build and send one report, then exit (cron-style)
-  python -m psycho --check   # validate config loading, then exit
+  python -m psycho --check   # validate config, print the delivery heartbeat, then exit
+
+``--check`` also prints ``router.read_report_heartbeat``: the timestamp of the
+last report that actually reached Telegram (set by
+``PsychoBot._mark_report_delivered``, never on a mere attempt). A missing or
+very old timestamp with a healthy weekly systemd timer means the same class of
+silent-delivery bug this module was fixed for on 2026-09-08 has recurred.
 
 Config keys (declared required):
   TELEGRAM_BOT_TOKEN_PSYCHO, TELEGRAM_CHAT_ID, OPENAI_API_KEY
   OPENAI_API_KEY powers BOTH the LLM brain (analysis + weekly report, via
   core.openai_agent) and voice-note transcription (core.stt / Whisper); without
-  it uncaptioned voice notes — the user's primary input — cannot be logged, and no
-  analysis runs. ANTHROPIC_API_KEY is no longer used by psycho (brain moved to
-  OpenAI after the direct Anthropic key ran out of credits).
+  it an uncaptioned voice note — the bot's primary input — cannot be logged,
+  and no analysis runs. ANTHROPIC_API_KEY is no longer used by psycho (brain
+  moved to OpenAI after the direct Anthropic key ran out of credit).
   REDIS_URL is optional (defaults to redis://localhost:6379 via core.config).
 
 A missing key fails loud naming the key (core.config.ConfigError) — the process
@@ -30,11 +36,11 @@ import logging
 import os
 import sys
 
-from core import config
+from core import config, tg
 from core.errors import ConfigError
 
 from .report import run_report_scheduler
-from .router import build_dispatcher, build_psycho_bot
+from .router import build_dispatcher, build_psycho_bot, read_report_heartbeat
 
 logger = logging.getLogger("psycho_bot")
 
@@ -43,9 +49,9 @@ def _inproc_report_enabled() -> bool:
     """Whether to run the weekly report loop inside the long-poll process.
 
     Off by default: the weekly report is driven by a Sunday-aligned systemd
-    timer (``psycho-report.timer`` -> ``--once``), so the long-poll
-    service keeps only routing/journaling. Set ``PSYCHO_INPROC_REPORT=1`` to
-    restore the old in-process scheduler (e.g. a host without systemd timers).
+    timer (``--once``), so the long-poll service keeps only
+    routing/journaling. Set ``PSYCHO_INPROC_REPORT=1`` to restore the old
+    in-process scheduler (e.g. a host without systemd timers).
     """
     return os.getenv("PSYCHO_INPROC_REPORT", "0") == "1"
 
@@ -73,7 +79,7 @@ async def run(cfg: config.Config) -> None:
     this process keeps only routing/journaling.
     """
     bot, telegram = build_psycho_bot(cfg)
-    dp = build_dispatcher(bot)
+    dp = build_dispatcher(bot, allowed_chat_ids=tg.gather_chat_ids(cfg.require("TELEGRAM_CHAT_ID")))
     scheduler: asyncio.Task[None] | None = None
     if _inproc_report_enabled():
         logger.info("psycho-bot started; long-poll router + in-process weekly report")
@@ -108,6 +114,11 @@ def main() -> int:
 
     if args.check:
         print(f"Config OK — all {len(REQUIRED_KEYS)} required keys present.")
+        heartbeat = read_report_heartbeat(cfg)
+        if heartbeat:
+            print(f"Last report delivered: {heartbeat}")
+        else:
+            print("Last report delivered: none seen (missing, expired, or redis unreachable).")
         return 0
 
     try:

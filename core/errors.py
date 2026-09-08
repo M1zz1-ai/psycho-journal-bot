@@ -1,6 +1,6 @@
 """Shared exception types + phoenix resilience.
 
-Resilience is the design goal carried over from a prior bot: a failed work
+Resilience is the design goal carried over from gmail-bot-py: a failed work
 cycle is logged, optionally alerted to Telegram, and the process KEEPS RUNNING
 so the next cycle retries. A single transient failure (network blip, rate
 limit, expired token) never kills a bot.
@@ -14,6 +14,8 @@ from collections.abc import Awaitable, Callable
 from functools import wraps
 from typing import Any, Protocol, TypeVar
 
+from .tgfmt import escape_plain
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -23,7 +25,7 @@ T = TypeVar("T")
 
 
 class CoreError(RuntimeError):
-    """Base for all this project core errors."""
+    """Base for all m1zz1-bots core errors."""
 
 
 class ConfigError(CoreError):
@@ -47,7 +49,7 @@ class SttError(CoreError):
 
 
 class AgentError(CoreError):
-    """Raised when the OpenAI agent loop fails irrecoverably."""
+    """Raised when the Anthropic agent loop fails irrecoverably."""
 
 
 # ---- alert sink --------------------------------------------------------
@@ -60,11 +62,20 @@ class Alerter(Protocol):
 
 
 async def _send_alert(alerter: Alerter | None, message: str) -> None:
-    """Best-effort alert; an alert failure must never mask the original error."""
+    """Best-effort alert; an alert failure must never mask the original error.
+
+    The text is ESCAPED, not converted. Alerts carry exception strings — paths,
+    tracebacks, library output — and the alerter sends with
+    ``parse_mode="HTML"``, so a stray ``<module>`` or ``&`` made Telegram reject
+    the message whole and the failure being announced vanished (live, 2026-08-14
+    05:30:07). :func:`core.tgfmt.escape_plain` rather than ``to_telegram_html``
+    because none of this is Markdown: ``__main__`` is a module name and must
+    survive as one.
+    """
     if alerter is None:
         return
     try:
-        await alerter.send_text(message)
+        await alerter.send_text(escape_plain(message))
     except Exception:
         logger.exception("failed to send failure alert")
 

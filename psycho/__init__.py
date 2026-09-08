@@ -6,9 +6,14 @@ all built on the shared ``core``:
   * Router   — routes each message: /start, the analysis button, a period reply,
     or a plain journal entry (text or transcribed voice) pushed to a redis ledger.
   * Analysis — on-demand, button-triggered: parse a free-text period, gather the
-    in-window journal entries, run the cold-stoic analysis, reply in Telegram.
+    in-window journal entries, run the cold-stoic analysis.
   * Report   — a weekly cold-stoic report over the last 7 days of entries,
-    optionally enriched with the past week's tasks.
+    enriched with the past week's Notion tasks.
+
+Delivery to Telegram is the primary, unconditional path (see ``bot``). An
+analysis/report can ALSO be mirrored as an approval card for a separate
+review queue, gated behind an opt-in flag (see ``router``); that sink is an
+optional, additional artifact, not the delivery path.
 """
 
 from .bot import PsychoBot

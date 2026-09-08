@@ -52,7 +52,7 @@ def _gate() -> config.Config | None:
         if missing:
             print(
                 f"SKIP — live smoke needs {', '.join(GATING_KEYS)} in "
-                f"the local .env file (missing: {', '.join(missing)}). "
+                f"~/.config/m1zz1/.env (missing: {', '.join(missing)}). "
                 "No real creds present; nothing to do."
             )
             return None

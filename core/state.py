@@ -2,10 +2,10 @@
 
 Redis is live locally (``redis-cli ping`` -> PONG). When it's down we log once
 and degrade to no-op rather than crashing — a bot that can't dedup is degraded,
-not dead (the phoenix philosophy from a prior bot applied to state).
+not dead (the phoenix philosophy from gmail-bot-py applied to state).
 
 - Dedup ledger: a per-namespace seen-set with TTL, so the same item isn't
-  processed twice (replaces a prior bot's SQLite ``processed`` table).
+  processed twice (replaces gmail-bot-py's SQLite ``processed`` table).
 - Session store: get/set arbitrary JSON-able state under a key with TTL
   (conversation/session memory for chat bots).
 """
@@ -21,7 +21,7 @@ import redis
 logger = logging.getLogger(__name__)
 
 DEFAULT_URL = "redis://localhost:6379"
-DEFAULT_SEEN_TTL = 48 * 3600  # seconds (mirrors a prior bot's 48h dedup window)
+DEFAULT_SEEN_TTL = 48 * 3600  # seconds (mirrors gmail-bot-py's 48h dedup window)
 DEFAULT_SESSION_TTL = 3600
 
 
@@ -38,7 +38,7 @@ class RedisState:
         self,
         url: str = DEFAULT_URL,
         *,
-        namespace: str = "app",
+        namespace: str = "m1zz1",
         client: Any | None = None,
     ) -> None:
         self.namespace = namespace
@@ -85,6 +85,43 @@ class RedisState:
         except redis.RedisError as exc:
             self._degraded(exc)
 
+    # ---- list reads -----------------------------------------------------
+
+    def last_json(self, *parts: str, default: Any = None) -> Any:
+        """Return the NEWEST (rightmost) element of a redis list, parsed as JSON.
+
+        Read-only and non-destructive on purpose: an external producer pushes
+        a brief with RPUSH, read here as evidence that the producer ran.
+        Consuming it would make that evidence disappear on the first restart.
+
+        Returns ``default`` on an empty/missing list, unparseable JSON, or a
+        redis failure — an absent brief and an unreachable redis are the same
+        thing to the caller: no proof the planner ran.
+        """
+        try:
+            items = self._client.lrange(self._key(*parts), -1, -1)
+        except redis.RedisError as exc:
+            self._degraded(exc)
+            return default
+        if not items:
+            return default
+        try:
+            return json.loads(items[0])
+        except (json.JSONDecodeError, TypeError):
+            return default
+
+    def trim_list(self, *parts: str, keep: int = 10) -> None:
+        """Keep only the NEWEST ``keep`` elements of a redis list. No-op on failure.
+
+        The brief list is read with LRANGE and never popped (the digest reads the
+        same element as proof the planner ran), so nothing else would ever remove
+        anything: one JSON blob per day, forever. ``keep`` must be >= 1.
+        """
+        try:
+            self._client.ltrim(self._key(*parts), -keep, -1)
+        except redis.RedisError as exc:
+            self._degraded(exc)
+
     # ---- session store --------------------------------------------------
 
     def set_session(self, key: str, value: Any, *, ttl: int = DEFAULT_SESSION_TTL) -> None:
@@ -116,3 +153,35 @@ class RedisState:
             self._client.delete(self._key("session", key))
         except redis.RedisError as exc:
             self._degraded(exc)
+
+
+def bound_flat_list(client: Any, key: str, *, keep: int, ttl: int) -> None:
+    """LTRIM + EXPIRE a literal (un-namespaced) redis list. No-op on failure.
+
+    Producer lists such as a bot's own ``approval:<bot>`` card sink are
+    deliberately flat keys living OUTSIDE :class:`RedisState`'s
+    ``<namespace>:...`` scheme, because a fixed consumer LPOPs the literal
+    name. :meth:`RedisState.trim_list`
+    cannot be reused for them: it always builds its key through
+    :meth:`RedisState._key`, which prepends ``self.namespace`` and would trim a
+    key nobody reads or writes rather than the real one.
+
+    Call this with the raw client (e.g. ``state._client``), not a
+    :class:`RedisState` instance, right after a successful ``RPUSH`` on the
+    same key.
+
+    Keeps the newest ``keep`` elements (``LTRIM key -keep -1``; RPUSH appends
+    to the right, so the newest entries are rightmost) and refreshes the key's
+    TTL to ``ttl`` seconds on every call. An actively-fed list therefore never
+    expires from inactivity while cards keep arriving; one that stalls stops
+    accumulating unbounded personal data and eventually expires outright.
+
+    A push that already succeeded is never rolled back because this fails: like
+    every other method in this module, a redis error is logged once and
+    swallowed rather than raised.
+    """
+    try:
+        client.ltrim(key, -keep, -1)
+        client.expire(key, ttl)
+    except redis.RedisError as exc:
+        logger.warning("bound_flat_list failed for %s (degraded): %s", key, exc)

@@ -1,9 +1,10 @@
-"""Configuration loading from a single ``.env`` file.
+"""Configuration loading from the single master env file.
 
-All secrets/config come from a ``.env`` file at the repository root (copy
-``.env.example`` to ``.env`` and fill it in). Each component declares the keys it
-needs via ``load(required=[...])`` — the core never hard-requires a fixed set, so
-a new component adds new keys without touching this module.
+All secrets/config come from a single master env file outside the repo (see
+``MASTER_ENV_PATH`` below), shared by every bot in this monorepo. Each bot
+declares the keys IT needs via ``load(required=[...])`` — the core
+never hard-requires a fixed set, so a new bot adds new keys without touching
+this module.
 
 Required keys fail loud (ConfigError naming the missing key) so a misconfigured
 deploy never silently runs with empty credentials.
@@ -18,13 +19,27 @@ from dotenv import dotenv_values
 
 from .errors import ConfigError
 
-# The repository-root .env (this file lives at <repo>/core/config.py).
-MASTER_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+LOCAL_ENV_PATH = Path(".env")
+MASTER_ENV_PATH = (
+    LOCAL_ENV_PATH if LOCAL_ENV_PATH.exists() else Path.home() / ".config" / "m1zz1" / ".env"
+)
 
 # Defaults for optional keys. A bot may still declare REDIS_URL as required;
 # if absent from the env file it falls back to this rather than raising.
 DEFAULTS: dict[str, str] = {
     "REDIS_URL": "redis://localhost:6379",
+    # Wall-clock scheduling (notion-bot digest + slot pinger). The zone has DST
+    # (its offset changes twice a year), which is exactly why the
+    # zone stays a config key (a ZoneInfo name) and never a baked-in offset.
+    # Historical Notion rows still carry +03:00 — those are legacy offsets on
+    # the data, not a statement about where the clock lives.
+    "TIMEZONE": "Europe/London",
+    "DIGEST_HOUR": "11",
+    # Local hour from which the notion bot may ask its ONE evening question
+    # ("nothing moved today — выходной?"). Late enough that a real working day
+    # has had time to happen, early enough to still act on the answer. A key
+    # nobody sets must not silently disable the question.
+    "DAY_OFF_HOUR": "20",
 }
 
 
