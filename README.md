@@ -73,7 +73,7 @@ secret is ever hard-coded.
 | --- | --- | --- |
 | `TELEGRAM_BOT_TOKEN_PSYCHO` | ✅ | Bot token from @BotFather |
 | `OPENAI_API_KEY` | ✅ | LLM analysis/report **and** Whisper STT |
-| `TELEGRAM_CHAT_ID` | ✅ | Owner chat id (report + alerts) |
+| `TELEGRAM_CHAT_ID` | ✅ | Authorization boundary: only these chat ids can reach the bot at all (an update from any other chat is silently dropped); also where the report and alerts land. Add an id only for someone who should get full access to the journal and every analysis. |
 | `REDIS_URL` | — | Journal ledger (default `redis://localhost:6379`) |
 | `PSYCHO_REPORT_MODEL` | — | Override the weekly-report model |
 | `PSYCHO_ANALYSIS_MODEL` | — | Override the on-demand model |
@@ -136,6 +136,8 @@ core/          # reusable, bot-agnostic building blocks
   state.py          # Redis journal + session store (graceful degradation)
   scheduler.py      # resilient async interval loop
   tg.py             # aiogram Telegram helpers
+  tg_auth.py        # chat allowlist middleware (the authorization boundary)
+  tgfmt.py          # markdown -> Telegram-safe HTML for LLM replies
   config.py         # .env loading, fail-loud on missing keys
   errors.py         # shared errors + resilience wrapper
   notion.py         # optional notion-cli task lookup
